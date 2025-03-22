@@ -50,14 +50,27 @@ python --version  # or python3 --version
 Use code with caution.
 If Python is not found, install it:
 ```
-Windows: Download from https://www.python.org/downloads/windows/ (remember to check "Add Python to PATH").
+> Windows: Download from 
 
-macOS: Install via Homebrew: brew install python3 (https://brew.sh/)
+https://www.python.org/downloads/windows/ 
 
-Linux: Use your distribution's package manager (e.g., sudo apt update && sudo apt install python3 python3-pip on Debian/Ubuntu).
+(remember to check "Add Python to PATH").
 
-Option 1: Recommended Setup (pyenv and uv)
-Install pyenv: Follow instructions for your OS: https://github.com/pyenv/pyenv#installation. For Windows, use pyenv-win: https://github.com/pyenv-win/pyenv-win.
+> macOS:
+Install via Homebrew: 
+``` bash 
+brew install python3
+```
+(https://brew.sh/)
+
+> Linux: Use your distribution's package manager (e.g., sudo apt update && sudo apt install python3 python3-pip on Debian/Ubuntu).
+
+#### Option 1: Recommended Setup (pyenv and uv)
+
+Install pyenv: Follow instructions for your OS: 
+https://github.com/pyenv/pyenv#installation. 
+
+> For Windows, use pyenv-win: https://github.com/pyenv-win/pyenv-win.
 
 Install Python Version (e.g., 3.11):
 
@@ -82,7 +95,7 @@ uv pip install pillow  # For core functionality
 uv pip install pyqt6   # If using the GUI
 ``` 
 
-Option 2: Standard Setup (venv and pip)
+#### Option 2: Standard Setup (venv and pip)
 Ensure Python is Installed (See Prerequisites).
 
 Create Virtual Environment:
@@ -107,7 +120,9 @@ python -m pip install pyqt6   # If using the GUI
 Run the Script:
 ``` bash
 python webp_cli_converter.py
-``` 
+```
+# Command Line Interface CLI
+
 Follow the Prompts:
 
 Input Folder: Provide the full path to the folder with your images.
@@ -120,7 +135,7 @@ Lossless: Type yes for lossless compression (larger files, perfect quality), or 
 
 The script will print progress and error messages.
 
-Graphical User Interface (GUI)
+# Graphical User Interface (GUI)
 The GUI (webp_converter_gui.py) offers a visual interface.
 
 Run the Script:
