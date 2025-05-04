@@ -4,10 +4,32 @@ import zipfile
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLabel, QLineEdit,
                              QPushButton, QVBoxLayout, QHBoxLayout, QWidget,
                              QFileDialog, QSpinBox, QCheckBox, QTextEdit,
-                             QMessageBox, QProgressBar, QInputDialog)
+                             QMessageBox, QProgressBar, QInputDialog, QDialog,
+                             QDialogButtonBox)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 import image_converter  # Import the shared module
+
+class NewFolderDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Create New Folder")
+
+        self.layout = QVBoxLayout()
+        self.label = QLabel("Folder Name:")
+        self.lineEdit = QLineEdit()
+        self.layout.addWidget(self.label)
+        self.layout.addWidget(self.lineEdit)
+
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+        self.layout.addWidget(self.buttonBox)
+
+        self.setLayout(self.layout)
+
+    def getFolderName(self):
+        return self.lineEdit.text()
 
 class ConversionThread(QThread):
     """A QThread to handle the image conversion process in the background."""
@@ -128,7 +150,7 @@ class ImageConverterGUI(QMainWindow):
         self.layout.addWidget(self.status_output)
 
         # --- Initialization ---
-        self.toggle_output_folder_widgets(Qt.Unchecked)
+        self.toggle_output_folder_widgets(Qt.CheckState.Unchecked)
 
     def browse_input_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Input Folder")
@@ -141,7 +163,7 @@ class ImageConverterGUI(QMainWindow):
             self.output_folder_line_edit.setText(folder_path)
 
     def create_output_folder(self):
-        """Creates a new output folder using a QFileDialog."""
+        """Creates a new output folder using a custom dialog."""
         input_folder = self.input_folder_line_edit.text()
         if not input_folder:
             QMessageBox.warning(self, "Input Folder Missing", "Please select an input folder first.")
@@ -151,20 +173,28 @@ class ImageConverterGUI(QMainWindow):
         if not output_folder:
             return  # User cancelled
 
-        folder_name, ok = QInputDialog.getText(self, "New Folder Name", "Enter name for the new folder:")
-        if not ok or not folder_name:
-            return  # User cancelled or entered empty name
+        dialog = NewFolderDialog(self)
+        result = dialog.exec()
 
-        new_folder_path = os.path.join(output_folder, folder_name)
-        try:
-            os.makedirs(new_folder_path)
-            self.output_folder_line_edit.setText(new_folder_path)
-            self.output_folder_checkbox.setChecked(True)  # Automatically check the box
-        except OSError as e:
-            QMessageBox.critical(self, "Error Creating Folder", f"Could not create folder: {e}")
+        if result == QDialog.DialogCode.Accepted:
+            folder_name = dialog.getFolderName()
+            if not folder_name:
+                QMessageBox.warning(self, "Folder Name Missing", "Please enter a folder name.")
+                return
+
+            new_folder_path = os.path.join(output_folder, folder_name)
+            try:
+                os.makedirs(new_folder_path)
+                self.output_folder_line_edit.setText(new_folder_path)
+                self.output_folder_checkbox.setChecked(True)  # Automatically check the box
+                print("Checkbox checked programmatically!")
+            except OSError as e:
+                QMessageBox.critical(self, "Error Creating Folder", f"Could not create folder: {e}")
 
     def toggle_output_folder_widgets(self, state):
-        enabled = (state == Qt.Checked)  # Corrected comparison
+        print(f"toggle_output_folder_widgets called with state: {state}")
+        enabled = (state == Qt.CheckState.Checked.value)
+        print(f"Enabled: {enabled}")
         self.output_folder_label.setEnabled(enabled)
         self.output_folder_line_edit.setEnabled(enabled)
         self.output_folder_button.setEnabled(enabled)
