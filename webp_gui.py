@@ -3,7 +3,7 @@ import os
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLabel, QLineEdit,
                              QPushButton, QVBoxLayout, QHBoxLayout, QWidget,
                              QFileDialog, QSpinBox, QCheckBox, QTextEdit,
-                             QMessageBox) # QMessageBox for simple error dialogs
+                             QMessageBox, QProgressBar)
 from PyQt6.QtCore import Qt
 from PIL import Image
 
@@ -11,7 +11,7 @@ class ImageConverterGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Image to WebP Converter")
-        self.setGeometry(100, 100, 600, 450) # Adjust size as needed
+        self.setGeometry(100, 100, 600, 500)  # Increased height for progress bar
 
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -64,6 +64,10 @@ class ImageConverterGUI(QMainWindow):
         lossless_layout.addWidget(self.lossless_checkbox)
         lossless_layout.addStretch(1) # Push to the left
         self.layout.addLayout(lossless_layout)
+
+        # --- Progress Bar ---
+        self.progress_bar = QProgressBar()
+        self.layout.addWidget(self.progress_bar)
 
         # --- Convert Button ---
         self.convert_button = QPushButton("Convert Images")
@@ -120,6 +124,7 @@ class ImageConverterGUI(QMainWindow):
         self.status_output.clear() # Clear previous status
         self.status_output.append("Starting conversion...")
         self.convert_button.setEnabled(False) # Disable button during conversion
+        self.progress_bar.setValue(0) # Reset progress bar
 
         try:
             self.convert_images_to_webp(input_folder, output_folder, quality, lossless) # Call the conversion function
@@ -129,11 +134,12 @@ class ImageConverterGUI(QMainWindow):
             QMessageBox.critical(self, "Error", f"Conversion failed. See status output for details.\nError: {e}") # Display error dialog
         finally:
             self.convert_button.setEnabled(True) # Re-enable button after conversion (or error)
+            self.progress_bar.setValue(0) # Reset progress bar
 
 
     def convert_images_to_webp(self, input_folder, output_folder, quality, lossless):
         """
-        (Same image conversion logic from previous script, but adapted to update GUI status)
+        Converts images in the input folder to WebP format, saving them in the specified output folder.
         """
         if output_folder is None:
             output_folder = input_folder
@@ -141,37 +147,51 @@ class ImageConverterGUI(QMainWindow):
         if not os.path.exists(output_folder):
             os.makedirs(output_folder, exist_ok=True)
 
-        image_files_found = False # Flag to check if any images were found
-        for filename in os.listdir(input_folder):
-            if os.path.isfile(os.path.join(input_folder, filename)):
-                if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                    image_files_found = True
-                    input_filepath = os.path.join(input_folder, filename)
-                    try:
-                        img = Image.open(input_filepath)
-                        base_filename, ext = os.path.splitext(filename)
-                        output_webp_filename = base_filename + ".webp"
-                        output_webp_filepath = os.path.join(output_folder, output_webp_filename)
-
-                        status_message = f"Converting: {filename} to {output_webp_filename}"
-                        self.status_output.append(status_message)
-                        QApplication.processEvents() # Important: Update GUI during long process
-
-                        img.save(output_webp_filepath, 'webp', quality=quality, lossless=lossless)
-
-                        status_message = f"Saved: {output_webp_filename}"
-                        self.status_output.append(status_message)
-                        QApplication.processEvents() # Update GUI again
-
-                    except Exception as e:
-                        error_message = f"Error processing {filename}: {e}"
-                        self.status_output.append(error_message)
-                        QApplication.processEvents() # Update GUI with error message
-
-        if not image_files_found:
+        # Create a set of valid image extensions for faster checking
+        valid_extensions = {'.png', '.jpg', '.jpeg'}
+        image_files = [f for f in os.listdir(input_folder) if os.path.isfile(os.path.join(input_folder, f)) and os.path.splitext(f.lower())[1] in valid_extensions]
+        num_images = len(image_files)
+        if num_images == 0:
             self.status_output.append("No PNG or JPG images found in the input folder.")
-            QMessageBox.information(self, "No Images Found", "No PNG or JPG images were found in the selected input folder.") # Inform user
+            QMessageBox.information(self, "No Images Found", "No PNG or JPG images were found in the selected input folder.")
+            return
 
+        self.progress_bar.setRange(0, num_images)
+        converted_count = 0
+
+        for filename in image_files:
+            input_filepath = os.path.join(input_folder, filename)
+            try:
+                try:
+                    img = Image.open(input_filepath)
+                except Exception as e:
+                    error_message = f"Error opening {filename}: {e}"
+                    self.status_output.append(error_message)
+                    QApplication.processEvents()
+                    continue  # Skip to the next image
+
+                base_filename, ext = os.path.splitext(filename)
+                output_webp_filename = base_filename + ".webp"
+                output_webp_filepath = os.path.join(output_folder, output_webp_filename)
+
+                status_message = f"Converting: {filename} to {output_webp_filename}"
+                self.status_output.append(status_message)
+                QApplication.processEvents() # Important: Update GUI during long process
+
+                img.save(output_webp_filepath, 'webp', quality=quality, lossless=lossless)
+
+                status_message = f"Saved: {output_webp_filename}"
+                self.status_output.append(status_message)
+                QApplication.processEvents() # Update GUI again
+
+            except Exception as e:
+                error_message = f"Error processing {filename}: {e}"
+                self.status_output.append(error_message)
+                QApplication.processEvents() # Update GUI with error message
+            finally:
+                converted_count += 1
+                self.progress_bar.setValue(converted_count)
+                QApplication.processEvents()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
