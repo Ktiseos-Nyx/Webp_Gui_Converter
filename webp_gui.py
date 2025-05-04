@@ -4,8 +4,9 @@ import zipfile
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLabel, QLineEdit,
                              QPushButton, QVBoxLayout, QHBoxLayout, QWidget,
                              QFileDialog, QSpinBox, QCheckBox, QTextEdit,
-                             QMessageBox, QProgressBar)
+                             QMessageBox, QProgressBar, QInputDialog)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
+
 import image_converter  # Import the shared module
 
 class ConversionThread(QThread):
@@ -127,7 +128,7 @@ class ImageConverterGUI(QMainWindow):
         self.layout.addWidget(self.status_output)
 
         # --- Initialization ---
-        self.toggle_output_folder_widgets(Qt.CheckState.Unchecked)
+        self.toggle_output_folder_widgets(Qt.Unchecked)
 
     def browse_input_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Input Folder")
@@ -163,7 +164,7 @@ class ImageConverterGUI(QMainWindow):
             QMessageBox.critical(self, "Error Creating Folder", f"Could not create folder: {e}")
 
     def toggle_output_folder_widgets(self, state):
-        enabled = (state == Qt.CheckState.Checked)
+        enabled = (state == Qt.Checked)  # Corrected comparison
         self.output_folder_label.setEnabled(enabled)
         self.output_folder_line_edit.setEnabled(enabled)
         self.output_folder_button.setEnabled(enabled)
