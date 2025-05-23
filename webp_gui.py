@@ -4,9 +4,17 @@ import zipfile
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLabel, QLineEdit,
                              QPushButton, QVBoxLayout, QHBoxLayout, QWidget,
                              QFileDialog, QSpinBox, QCheckBox, QTextEdit,
-                             QMessageBox, QProgressBar, QInputDialog, QDialog,
+                             QMessageBox, QProgressBar, QDialog,
                              QDialogButtonBox)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
+
+# --- Added for Qt Material ---
+try:
+    import qt_material
+except ImportError:
+    print("qt-material library not found. Please install it: pip install qt-material")
+    qt_material = None
+# -----------------------------
 
 import image_converter  # Import the shared module
 
@@ -63,7 +71,14 @@ class ImageConverterGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Image to WebP Converter")
-        self.setGeometry(100, 100, 600, 550) # Increased height
+
+        # --- 1. Window Size Rules ---
+        # Set a fixed size. This ensures consistency across different OS/screen sizes.
+        # We'll use 600 width (as before) and increase height a bit for better spacing.
+        # This meets your minimum 500x600 requirement.
+        self.setFixedSize(600, 650)
+        # You can also set initial position if you like:
+        # self.move(100, 100) # Or use QScreen to center it
 
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -150,7 +165,7 @@ class ImageConverterGUI(QMainWindow):
         self.layout.addWidget(self.status_output)
 
         # --- Initialization ---
-        self.toggle_output_folder_widgets(Qt.CheckState.Unchecked)
+        self.toggle_output_folder_widgets(Qt.CheckState.Unchecked.value) # Pass the integer value
 
     def browse_input_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Input Folder")
@@ -165,13 +180,18 @@ class ImageConverterGUI(QMainWindow):
     def create_output_folder(self):
         """Creates a new output folder using a custom dialog."""
         input_folder = self.input_folder_line_edit.text()
-        if not input_folder:
-            QMessageBox.warning(self, "Input Folder Missing", "Please select an input folder first.")
+        if not input_folder and not self.output_folder_line_edit.text():
+             # Allow creating if output parent is already selected
+            parent_dir_for_new_folder = QFileDialog.getExistingDirectory(self, "Select Parent Folder for New Output Folder")
+            if not parent_dir_for_new_folder:
+                return # User cancelled
+        elif self.output_folder_line_edit.text() and os.path.isdir(self.output_folder_line_edit.text()):
+            parent_dir_for_new_folder = self.output_folder_line_edit.text()
+        elif input_folder and os.path.isdir(input_folder):
+            parent_dir_for_new_folder = input_folder # Default to input folder if nothing else
+        else:
+            QMessageBox.warning(self, "Base Folder Missing", "Please select an input folder or an existing output folder to create a subfolder in.")
             return
-
-        output_folder = QFileDialog.getExistingDirectory(self, "Select Parent Folder for New Output Folder")
-        if not output_folder:
-            return  # User cancelled
 
         dialog = NewFolderDialog(self)
         result = dialog.exec()
@@ -182,23 +202,31 @@ class ImageConverterGUI(QMainWindow):
                 QMessageBox.warning(self, "Folder Name Missing", "Please enter a folder name.")
                 return
 
-            new_folder_path = os.path.join(output_folder, folder_name)
+            new_folder_path = os.path.join(parent_dir_for_new_folder, folder_name)
             try:
-                os.makedirs(new_folder_path)
+                os.makedirs(new_folder_path, exist_ok=True) # exist_ok=True is safer
                 self.output_folder_line_edit.setText(new_folder_path)
-                self.output_folder_checkbox.setChecked(True)  # Automatically check the box
-                print("Checkbox checked programmatically!")
+                self.output_folder_checkbox.setChecked(True)
             except OSError as e:
                 QMessageBox.critical(self, "Error Creating Folder", f"Could not create folder: {e}")
 
-    def toggle_output_folder_widgets(self, state):
-        print(f"toggle_output_folder_widgets called with state: {state}")
-        enabled = (state == Qt.CheckState.Checked.value)
-        print(f"Enabled: {enabled}")
+    def toggle_output_folder_widgets(self, state_value): # state_value is int
+        # The stateChanged signal for QCheckBox emits an int (the value of Qt.CheckState)
+        enabled = (state_value == Qt.CheckState.Checked.value)
+        # Alternatively, you could just check the checkbox's current state:
+        # enabled = self.output_folder_checkbox.isChecked()
+
         self.output_folder_label.setEnabled(enabled)
         self.output_folder_line_edit.setEnabled(enabled)
         self.output_folder_button.setEnabled(enabled)
+        # Keep create output folder button always enabled or also tied to this?
+        # For now, let's tie it to the checkbox, implying it's for creating *the* separate output folder.
         self.create_output_folder_button.setEnabled(enabled)
+        self.output_folder_hint_label.setText(
+            "(If unchecked, WebP saved in input folder)" if not enabled
+            else "(WebP will be saved in the specified output folder)"
+        )
+
 
     def start_conversion(self):
         input_path = self.input_folder_line_edit.text()
@@ -220,6 +248,11 @@ class ImageConverterGUI(QMainWindow):
             self.convert_button.setEnabled(True)
             return
 
+        if self.output_folder_checkbox.isChecked() and not output_dir:
+            QMessageBox.warning(self, "Output Missing", "Please specify an output folder or uncheck 'Use Separate Output Folder'.")
+            self.convert_button.setEnabled(True)
+            return
+
         # Create and start the conversion thread
         self.conversion_thread = ConversionThread(input_path, output_dir, quality, lossless, recursive, no_overwrite, zip_output)
         self.conversion_thread.progress_update.connect(self.update_progress)
@@ -229,21 +262,36 @@ class ImageConverterGUI(QMainWindow):
 
     def update_progress(self, current, total, message):
         """Updates the progress bar and status output."""
-        self.progress_bar.setMaximum(total)
-        self.progress_bar.setValue(current)
+        if total > 0 : # Avoid division by zero if total is somehow 0 initially
+            self.progress_bar.setMaximum(total)
+            self.progress_bar.setValue(current)
+        else:
+            self.progress_bar.setMaximum(1) #indeterminate
+            self.progress_bar.setValue(0)
         self.status_output.append(message)
         QApplication.processEvents() # Keep GUI responsive
 
-    def conversion_complete(self, output_dir):
+    def conversion_complete(self, output_dir_used): # output_dir_used can be None
         """Called when the conversion thread finishes successfully."""
         self.status_output.append("Conversion complete!")
-        if self.zip_output_checkbox.isChecked():
+        final_output_dir = output_dir_used
+        if not final_output_dir: # If output_dir was None, it means input_path was used
+            final_output_dir = self.input_folder_line_edit.text()
+            if os.path.isfile(final_output_dir): # if input was a file, get its directory
+                final_output_dir = os.path.dirname(final_output_dir)
+
+
+        if self.zip_output_checkbox.isChecked() and final_output_dir:
             try:
-                zip_filename = os.path.basename(output_dir) + ".zip"
-                zip_filepath = os.path.join(os.path.dirname(output_dir), zip_filename)
-                self.zip_folder(output_dir, zip_filepath)
-                self.status_output.append(f"Zipped output to: {zip_filename}")
-                QMessageBox.information(self, "Zipping Complete", f"Output folder zipped to {zip_filename}")
+                # Determine zip filename based on the actual output directory
+                zip_filename = os.path.basename(os.path.normpath(final_output_dir)) + ".zip"
+                # Place zip file in the parent of the final_output_dir
+                zip_filepath = os.path.join(os.path.dirname(final_output_dir), zip_filename)
+
+                self.status_output.append(f"Zipping folder: {final_output_dir} to {zip_filepath}")
+                self.zip_folder(final_output_dir, zip_filepath)
+                self.status_output.append(f"Zipped output to: {zip_filepath}")
+                QMessageBox.information(self, "Zipping Complete", f"Output folder zipped to {zip_filepath}")
 
             except Exception as e:
                 self.status_output.append(f"Error zipping output: {e}")
@@ -262,10 +310,26 @@ class ImageConverterGUI(QMainWindow):
             for root, _, files in os.walk(folder_path):
                 for file in files:
                     file_path = os.path.join(root, file)
-                    zipf.write(file_path, os.path.relpath(file_path, folder_path))
+                    # Add file to zip, using relative path inside the zip
+                    zipf.write(file_path, os.path.relpath(file_path, os.path.join(folder_path, '..')))
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    # --- 2. Implement Qt Material themes ---
+    if qt_material:
+        # Apply a theme. You can try different themes:
+        # 'dark_teal.xml', 'light_blue.xml', 'dark_red.xml', etc.
+        # List available themes: print(qt_material.list_themes())
+        try:
+            qt_material.apply_stylesheet(app, theme='dark_blue.xml')
+        except Exception as e:
+            print(f"Could not apply qt-material theme: {e}")
+    else:
+        print("Skipping Qt Material theme application.")
+    # ------------------------------------
+
     window = ImageConverterGUI()
     window.show()
     sys.exit(app.exec())
