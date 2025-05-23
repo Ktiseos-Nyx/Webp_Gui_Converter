@@ -244,19 +244,40 @@ class ImageConverterGUI(QMainWindow):
                 action.setChecked(False) # Revert check if failed
 
     def browse_input(self):
-        # Allow selecting a file or a directory
-        dialog = QFileDialog(self, "Select Input Image or Folder")
-        dialog.setFileMode(QFileDialog.FileMode.ExistingFiles) # .AnyFile allows files, .Directory allows dirs
-         # Try to make it select either file or directory (might depend on OS behavior)
-        if dialog.exec():
-            selected = dialog.selectedFiles()
-            if selected:
-                # Heuristic: if multiple files selected, take the directory of the first.
-                # If one item selected, it could be a file or a dir.
-                path = selected[0]
-                # If user selected multiple files in a dir, QFileDialog might return them all.
-                # We only care about the first one to determine if it's a file or a dir path.
-                self.input_folder_line_edit.setText(path)
+        # This version prioritizes selecting a FOLDER for the "Input Folder/File" field.
+        # If a folder is selected, it's used.
+        # If folder selection is cancelled, it then offers to select a single FILE.
+        # This helps address the issue of not being able to select an input folder easily.
+
+        current_path_in_lineedit = self.input_folder_line_edit.text().strip()
+        start_dir = os.path.dirname(current_path_in_lineedit) if current_path_in_lineedit and (os.path.isfile(current_path_in_lineedit) or os.path.isdir(current_path_in_lineedit)) else os.path.expanduser("~")
+        if not os.path.isdir(start_dir): # Ensure start_dir is a valid directory
+             start_dir = os.path.expanduser("~")
+
+
+        # Attempt to select a folder first
+        folder_path = QFileDialog.getExistingDirectory(
+            self,
+            "Select Input Folder",
+            start_dir
+        )
+
+        if folder_path: # User selected a folder
+            self.input_folder_line_edit.setText(folder_path)
+            return
+
+        # If folder selection was cancelled (folder_path is empty),
+        # then offer to select a single file.
+        # This means if the user cancels the folder dialog, a file dialog will appear.
+        # This isn't ideal UX but allows both types of selection with one button for now.
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Input File",
+            start_dir,
+            "Image Files (*.png *.jpg *.jpeg *.bmp *.tiff);;All Files (*)"
+        )
+        if file_path: # User selected a file
+            self.input_folder_line_edit.setText(file_path)
 
 
     def browse_output_folder(self):
