@@ -72,8 +72,8 @@ If you don't have Python installed, you'll need to get it first. We recommend Py
 1.  **Get the Code:**
     *   **Recommended (using Git):** If you have Git installed, clone the repository. This is the best way to get the code and easily update it later.
         ```bash
-        git clone [URL_of_your_GitHub_repository] WebPConverter 
-        # Example: git clone https://github.com/YourUsername/ImageToWebPConverter.git WebPConverter
+        git clone [[URL_of_your_GitHub_repository](https://github.com/Ktiseos-Nyx/Webp_Gui_Converter)] WebPConverter 
+        # Example: git clone https://github.com/Ktiseos-Nyx/ImageToWebPConverter.git WebPConverter
         # This clones the repo into a folder named "WebPConverter"
         ```
         If you don't have Git, you can download it from [git-scm.com](https://git-scm.com/downloads).
@@ -136,7 +136,7 @@ Once the setup is complete:
 2.  **Navigate to the project directory** in your terminal if you're not already there.
 3.  **Run the GUI script:**
     ```bash
-    python your_gui_script_name.py  # Replace with the actual name of the main GUI Python file
+    python webp_gui.py  
     ```
     (The main GUI Python file is the one containing the `ImageConverterGUI` class).
 
