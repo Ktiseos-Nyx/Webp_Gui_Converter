@@ -244,19 +244,51 @@ class ImageConverterGUI(QMainWindow):
                 action.setChecked(False) # Revert check if failed
 
     def browse_input(self):
-        # Allow selecting a file or a directory
-        dialog = QFileDialog(self, "Select Input Image or Folder")
-        dialog.setFileMode(QFileDialog.FileMode.ExistingFiles) # .AnyFile allows files, .Directory allows dirs
-         # Try to make it select either file or directory (might depend on OS behavior)
-        if dialog.exec():
-            selected = dialog.selectedFiles()
-            if selected:
-                # Heuristic: if multiple files selected, take the directory of the first.
-                # If one item selected, it could be a file or a dir.
-                path = selected[0]
-                # If user selected multiple files in a dir, QFileDialog might return them all.
-                # We only care about the first one to determine if it's a file or a dir path.
-                self.input_folder_line_edit.setText(path)
+        current_path_in_lineedit = self.input_folder_line_edit.text().strip()
+        start_dir = os.path.dirname(current_path_in_lineedit) if current_path_in_lineedit and (os.path.isfile(current_path_in_lineedit) or os.path.isdir(current_path_in_lineedit)) else os.path.expanduser("~")
+        if not os.path.isdir(start_dir): # Ensure start_dir is a valid directory
+             start_dir = os.path.expanduser("~")
+
+        # --- Option 1: Prioritize Folder Selection (fixes "can't select folder") ---
+        # This will first open a dialog to select a folder.
+        # If the user cancels, it then opens a dialog to select a single file.
+        
+        # Ask user what they want to select
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Select Input Type")
+        msg_box.setText("What do you want to select as input?")
+        folder_button = msg_box.addButton("Select Folder", QMessageBox.ButtonRole.ActionRole)
+        file_button = msg_box.addButton("Select File", QMessageBox.ButtonRole.ActionRole)
+        cancel_button = msg_box.addButton(QMessageBox.StandardButton.Cancel)
+        # Apply theme to this QMessageBox if possible
+        if qt_material and hasattr(self, 'current_theme_name'):
+             qt_material.apply_stylesheet(msg_box, theme=self.current_theme_name)
+        
+        msg_box.exec()
+
+        selected_path = ""
+
+        if msg_box.clickedButton() == folder_button:
+            path = QFileDialog.getExistingDirectory(
+                self,
+                "Select Input Folder",
+                start_dir
+            )
+            if path:
+                selected_path = path
+        elif msg_box.clickedButton() == file_button:
+            path, _ = QFileDialog.getOpenFileName(
+                self,
+                "Select Input File",
+                start_dir,
+                "Image Files (*.png *.jpg *.jpeg *.bmp *.tiff);;All Files (*)"
+            )
+            if path:
+                selected_path = path
+        # If cancel_button or dialog closed, selected_path remains empty
+
+        if selected_path:
+            self.input_folder_line_edit.setText(selected_path)
 
 
     def browse_output_folder(self):
