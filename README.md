@@ -2,7 +2,9 @@
 
 **Quickly convert your PNG, JPG, JPEG, TIFF, and BMP images to the modern WebP format. Optimize images for the web, reduce file sizes, and save disk space!**
 
-This project offers a user-friendly Graphical User Interface (GUI) for easy, visual batch conversion of images. A command-line interface (CLI) is also planned for future development to support automated workflows.
+This project offers a user-friendly Graphical User Interface (GUI) for easy, visual batch conversion of images. 
+
+A command-line interface (CLI) is also offered to support automated workflows.
 
 **Join our Discord community!** [https://discord.gg/HhBSvM9gBY](https://discord.gg/HhBSvM9gBY)
 
