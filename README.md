@@ -115,18 +115,21 @@ If you don't have Python installed, you'll need to get it first. We recommend Py
     Your terminal prompt should now show `(.venv)` at the beginning.
 
 4.  **Install Dependencies:**
-    With the virtual environment activated, install the required libraries:
-    ```bash
-    pip install Pillow PyQt6
-    ```
-    For the enhanced themes (optional but recommended):
-    ```bash
-    pip install qt-material
-    ```
-    *To install all at once (if a `requirements.txt` is provided in the future):*
-    ```bash
-    # pip install -r requirements.txt
-    ```
+    With the virtual environment activated, you can install the required libraries.
+
+    *   **Option A (Install key packages manually):** This installs the main libraries, and `pip` will automatically fetch their necessary sub-dependencies.
+        ```bash
+        pip install Pillow PyQt6
+        ```
+        For the enhanced themes (optional but highly recommended):
+        ```bash
+        pip install qt-material
+        ```
+
+    *   **Option B (Using `requirements.txt` for specific versions):** A `requirements.txt` file is provided in the project root. This file lists all necessary packages (including sub-dependencies) with specific versions known to work. Using this ensures a consistent environment.
+        ```bash
+        pip install -r requirements.txt
+        ```
 
 ## 4. How to Use the GUI
 
