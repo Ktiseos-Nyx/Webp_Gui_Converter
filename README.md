@@ -74,8 +74,8 @@ If you don't have Python installed, you'll need to get it first. We recommend Py
 1.  **Get the Code:**
     *   **Recommended (using Git):** If you have Git installed, clone the repository. This is the best way to get the code and easily update it later.
         ```bash
-        git clone [[URL_of_your_GitHub_repository](https://github.com/Ktiseos-Nyx/Webp_Gui_Converter)] WebPConverter 
-        # Example: git clone https://github.com/Ktiseos-Nyx/ImageToWebPConverter.git WebPConverter
+        git clone https://github.com/Ktiseos-Nyx/Webp_Gui_Converter WebPConverter 
+        # Example: git clone https://github.com/Ktiseos-Nyx/Webp_Gui_Converter.git WebPConverter
         # This clones the repo into a folder named "WebPConverter"
         ```
         If you don't have Git, you can download it from [git-scm.com](https://git-scm.com/downloads).
